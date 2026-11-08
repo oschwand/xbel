@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xbel PUBLIC "+//IDN python.org//DTD XML Bookmark Exchange Language 1.0//EN//XML" "http://pyxml.sourceforge.net/topics/dtds/xbel-1.0.dtd">
+<xbel version="1.0">
+  <folder>
+    <title>Bookmarks Toolbar</title>
+    <bookmark href="https://go.dev">
+      <title>The Go Programming Language</title>
+    </bookmark>
+    <folder>
+      <title>Charm</title>
+      <bookmark href="https://charm.sh">
+        <title>Charm</title>
+      </bookmark>
+      <bookmark href="https://github.com/charmbracelet">
+        <title>Charm on GitHub</title>
+      </bookmark>
+    </folder>
+    <folder>
+      <title>Empty folder</title>
+    </folder>
+  </folder>
+  <folder>
+    <title>Bookmarks Menu</title>
+    <folder>
+      <title>Development</title>
+      <folder>
+        <title>Go</title>
+        <bookmark href="https://pkg.go.dev">
+          <title>Go Documentation</title>
+        </bookmark>
+        <bookmark href="https://go.dev/blog">
+          <title>The Go Blog</title>
+        </bookmark>
+      </folder>
+      <folder>
+        <title>Rust</title>
+        <bookmark href="https://www.rust-lang.org">
+          <title>Rust Programming Language</title>
+        </bookmark>
+      </folder>
+    </folder>
+    <folder>
+      <title>Reading</title>
+      <bookmark href="https://news.ycombinator.com">
+        <title>Hacker News</title>
+      </bookmark>
+      <bookmark href="https://lwn.net">
+        <title>LWN.net</title>
+      </bookmark>
+      <bookmark href="https://arstechnica.com">
+        <title>Ars Technica</title>
+      </bookmark>
+    </folder>
+  </folder>
+  <bookmark href="https://example.com">
+    <title>Just an example</title>
+  </bookmark>
+</xbel>
