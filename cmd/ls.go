@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/term"
 	"github.com/oschwand/xbel/internal/xbel"
 	"github.com/spf13/cobra"
 )
@@ -50,8 +51,20 @@ func runLs(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", path, err)
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), renderLs(doc, name, folder, xbel.SplitPath(path)))
+	out := cmd.OutOrStdout()
+	fmt.Fprintln(out, renderLs(doc, name, folder, xbel.SplitPath(path), lsWidth(out)))
 	return nil
+}
+
+// lsWidth returns the available line width for rendering, querying the
+// terminal when possible and defaulting to 80 columns otherwise.
+func lsWidth(w io.Writer) int {
+	if f, ok := w.(*os.File); ok {
+		if width, _, err := term.GetSize(f.Fd()); err == nil && width > 0 {
+			return width
+		}
+	}
+	return 80
 }
 
 // lsInput resolves the file and directory path arguments. The first
@@ -80,8 +93,11 @@ func lsInput(args []string) (io.Reader, string, func(), string, error) {
 }
 
 // renderLs renders the contents of a folder (or the document root when
-// folder is nil), preceded by a breadcrumb header.
-func renderLs(doc *xbel.Document, name string, folder *xbel.Folder, crumb []string) string {
+// folder is nil), preceded by a breadcrumb header. Each bookmark is
+// rendered as "title url" on a single line, unless that would not fit
+// in width for every entry, in which case every URL moves to its own
+// line under the title.
+func renderLs(doc *xbel.Document, name string, folder *xbel.Folder, crumb []string, width int) string {
 	var folders []*xbel.Folder
 	var bookmarks []xbel.Bookmark
 	if folder == nil {
@@ -118,15 +134,23 @@ func renderLs(doc *xbel.Document, name string, folder *xbel.Folder, crumb []stri
 	for _, bm := range bookmarks {
 		labels = append(labels, bookmarkLabel(bm))
 	}
-	width := 0
+	colw := 0
 	for _, l := range labels {
-		if w := lipgloss.Width(l); w > width {
-			width = w
+		if w := lipgloss.Width(l); w > colw {
+			colw = w
+		}
+	}
+
+	compact := true
+	for _, bm := range bookmarks {
+		if href := bookmarkURL(bm); href != "" && lipgloss.Width(bookmarkPrefix)+colw+1+lipgloss.Width(href) > width {
+			compact = false
+			break
 		}
 	}
 
 	for _, f := range folders {
-		line := folderStyle.Render("📁 ") + folderStyle.Render(padRight(folderLabel(f), width))
+		line := folderStyle.Render("📁 ") + folderStyle.Render(padRight(folderLabel(f), colw))
 		if len(f.Folders) == 0 && len(f.Bookmarks) == 0 {
 			line += " " + dimStyle.Render("(empty)")
 		} else if n := f.CountBookmarks(); n > 0 {
@@ -136,11 +160,19 @@ func renderLs(doc *xbel.Document, name string, folder *xbel.Folder, crumb []stri
 		b.WriteString("\n")
 	}
 	for _, bm := range bookmarks {
-		line := linkStyle.Render("🔗 ") + linkStyle.Render(padRight(bookmarkLabel(bm), width))
-		if href := strings.TrimSpace(bm.Href); href != "" && href != bookmarkLabel(bm) {
-			line += " " + urlStyle.Render(href)
+		label := bookmarkLabel(bm)
+		if compact {
+			line := linkStyle.Render(bookmarkPrefix) + linkStyle.Render(padRight(label, colw))
+			if href := bookmarkURL(bm); href != "" {
+				line += " " + urlStyle.Render(href)
+			}
+			b.WriteString(line)
+		} else {
+			b.WriteString(linkStyle.Render(bookmarkPrefix) + linkStyle.Render(label))
+			if href := bookmarkURL(bm); href != "" {
+				b.WriteString("\n" + urlStyle.Render(strings.Repeat(" ", lipgloss.Width(bookmarkPrefix))+href))
+			}
 		}
-		b.WriteString(line)
 		b.WriteString("\n")
 	}
 	return b.String()
@@ -164,6 +196,9 @@ func folderLabel(f *xbel.Folder) string {
 	return "(untitled)"
 }
 
+// bookmarkPrefix is the icon shown before every bookmark entry.
+const bookmarkPrefix = "🔗 "
+
 // bookmarkLabel returns the display title of a bookmark, falling back
 // to its URL when it has no title.
 func bookmarkLabel(bm xbel.Bookmark) string {
@@ -171,6 +206,17 @@ func bookmarkLabel(bm xbel.Bookmark) string {
 		return t
 	}
 	return strings.TrimSpace(bm.Href)
+}
+
+// bookmarkURL returns the URL to display next to a bookmark title, or
+// "" when it would not add information (no URL, or the URL is already
+// shown as the label of a title-less bookmark).
+func bookmarkURL(bm xbel.Bookmark) string {
+	href := strings.TrimSpace(bm.Href)
+	if href == "" || href == bookmarkLabel(bm) {
+		return ""
+	}
+	return href
 }
 
 func padRight(s string, width int) string {
