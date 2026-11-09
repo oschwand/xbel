@@ -149,3 +149,23 @@ func (d *Document) CountFolders() int {
 	}
 	return n
 }
+
+// Walk calls fn for every bookmark in the document, with the folder
+// path leading to it. The path is empty for top-level bookmarks.
+func (d *Document) Walk(fn func(path []string, bm Bookmark)) {
+	var walk func(folders []Folder, prefix []string)
+	walk = func(folders []Folder, prefix []string) {
+		for i := range folders {
+			f := &folders[i]
+			path := append(append([]string{}, prefix...), strings.TrimSpace(f.Title))
+			for j := range f.Bookmarks {
+				fn(path, f.Bookmarks[j])
+			}
+			walk(f.Folders, path)
+		}
+	}
+	walk(d.Folders, nil)
+	for i := range d.Bookmarks {
+		fn(nil, d.Bookmarks[i])
+	}
+}

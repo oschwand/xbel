@@ -40,6 +40,19 @@ and URLs share a line when every entry fits the terminal width;
 otherwise each URL is printed on its own line under its title.
 Non-terminal output assumes 80 columns.
 
+### xbel search <query>
+
+Searches every bookmark of the document: a bookmark matches when the
+query appears, case-insensitively, in its title, its URL, or the name
+of a folder on its path (the default searches all of them).
+
+    xbel search charm
+    xbel search --title charm
+    xbel search --url charm
+
+Results show the folder path leading to each match, then the title
+and URL.
+
 ## Exit status
 
 0 on success, 1 on error (unreadable file, invalid XML, unknown path).
