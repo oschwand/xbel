@@ -2,9 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -23,10 +20,9 @@ var (
 )
 
 var treeCmd = &cobra.Command{
-	Use:   "tree [file]",
+	Use:   "tree",
 	Short: "Display the folder tree of an XBEL document",
 	Long:  "Display the folder tree of an XBEL document, with the number of bookmarks in each folder.",
-	Args:  cobra.MaximumNArgs(1),
 	RunE:  runTree,
 }
 
@@ -35,7 +31,7 @@ func init() {
 }
 
 func runTree(cmd *cobra.Command, args []string) error {
-	reader, name, closeFn, err := openInput(args)
+	reader, name, closeFn, err := openXbel()
 	if err != nil {
 		return err
 	}
@@ -47,22 +43,6 @@ func runTree(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), renderTree(doc, name))
 	return nil
-}
-
-// openInput resolves the XBEL source: an explicit file argument, or
-// piped stdin when no argument is given.
-func openInput(args []string) (io.Reader, string, func(), error) {
-	if len(args) == 0 {
-		if st, err := os.Stdin.Stat(); err == nil && st.Mode()&os.ModeCharDevice == 0 {
-			return os.Stdin, "stdin", func() {}, nil
-		}
-		return nil, "", nil, fmt.Errorf("provide an XBEL file, or pipe one on stdin")
-	}
-	f, err := os.Open(args[0])
-	if err != nil {
-		return nil, "", nil, err
-	}
-	return f, filepath.Base(args[0]), func() { f.Close() }, nil
 }
 
 // renderTree renders the document folder tree, rooted at the file name.

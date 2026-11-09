@@ -11,25 +11,27 @@ Produces an `xbel` binary. Requires Go (see `go.mod`).
 
 ## Commands
 
-### xbel tree [file]
+The XBEL file is resolved in this order:
+
+1. the `--xbel` flag (`xbel --xbel /path/to/bookmarks.xbel tree`);
+2. the `XBEL_FILE` environment variable;
+3. `bookmarks.xbel` in the current directory, when it exists.
+
+### xbel tree
 
 Prints the folder tree of the document, with a bookmark count per
 folder and a summary header (XBEL version, folder and bookmark totals).
 Empty folders are marked `(empty)`, untitled folders `(untitled)`.
-With no file, XBEL is read from stdin.
 
-    xbel tree bookmarks.xbel
-    xbel tree < bookmarks.xbel
+    xbel tree
 
-### xbel ls [file] [path]
+### xbel ls [path]
 
 Lists the folders and bookmarks of one directory:
 
 - `path` is a slash-separated list of folder titles, relative to the
-  document root (`xbel ls bookmarks.xbel "Bookmarks Menu/Development"`).
-  Omit it to list the root.
-- With no file, XBEL is read from stdin; `-` also means stdin
-  (`cat bookmarks.xbel | xbel ls - Toolbar`).
+  document root (`xbel ls "Bookmarks Menu/Development"`). Omit it to
+  list the root.
 - Folder titles match exactly first, then by unique case-insensitive
   match. Errors list the folder names available at that level.
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -20,15 +19,14 @@ var (
 )
 
 var lsCmd = &cobra.Command{
-	Use:   "ls [file] [path]",
+	Use:   "ls [path]",
 	Short: "List folders and bookmarks in a directory",
 	Long: `List the folders and bookmarks in a directory of an XBEL document.
 
 The directory is given as a slash-separated path of folder titles,
 relative to the document root (e.g. "Bookmarks Menu/Development").
-With no path, the root directory is listed. With no file, XBEL is read
-from stdin ("-" also means stdin).`,
-	Args: cobra.MaximumNArgs(2),
+With no path, the root directory is listed.`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: runLs,
 }
 
@@ -37,11 +35,16 @@ func init() {
 }
 
 func runLs(cmd *cobra.Command, args []string) error {
-	reader, name, closeFn, path, err := lsInput(args)
+	reader, name, closeFn, err := openXbel()
 	if err != nil {
 		return err
 	}
 	defer closeFn()
+
+	path := ""
+	if len(args) > 0 {
+		path = args[0]
+	}
 
 	doc, err := xbel.Parse(reader)
 	if err != nil {
@@ -65,31 +68,6 @@ func lsWidth(w io.Writer) int {
 		}
 	}
 	return 80
-}
-
-// lsInput resolves the file and directory path arguments. The first
-// argument is the XBEL file (or "-" for piped stdin), the second the
-// folder path to list.
-func lsInput(args []string) (io.Reader, string, func(), string, error) {
-	file, path := "", ""
-	if len(args) > 0 {
-		file = args[0]
-	}
-	if len(args) > 1 {
-		path = args[1]
-	}
-
-	if file == "" || file == "-" {
-		if st, err := os.Stdin.Stat(); err == nil && st.Mode()&os.ModeCharDevice == 0 {
-			return os.Stdin, "stdin", func() {}, path, nil
-		}
-		return nil, "", nil, path, fmt.Errorf("provide an XBEL file, or pipe one on stdin")
-	}
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, "", nil, path, err
-	}
-	return f, filepath.Base(file), func() { f.Close() }, path, nil
 }
 
 // renderLs renders the contents of a folder (or the document root when
