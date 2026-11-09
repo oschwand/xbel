@@ -159,7 +159,7 @@ func TestRenderSearch(t *testing.T) {
 	for _, want := range []string{
 		"📑 bookmarks.xbel",
 		"1 match for query",
-		"Toolbar › News › LWN Kernel News",
+		"Toolbar / News › LWN Kernel News",
 		"https://lwn.net",
 	} {
 		if !strings.Contains(out, want) {
@@ -173,7 +173,7 @@ func TestRenderSearchFolder(t *testing.T) {
 	out := plain(renderSearch("bookmarks.xbel", nil, folders))
 	for _, want := range []string{
 		"1 match for query",
-		"Toolbar › 📁 News",
+		"Toolbar / News",
 		"1 link",
 	} {
 		if !strings.Contains(out, want) {

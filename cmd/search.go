@@ -149,26 +149,16 @@ func renderSearch(name string, matches []match, folders []folderMatch) string {
 	return b.String()
 }
 
-// folderLine renders a folder match: its path (the folder itself last,
-// with a folder icon) and its recursive bookmark count.
+// folderLine renders a folder match: its slash-separated path, the
+// same format ls accepts, and its recursive bookmark count.
 func folderLine(fm folderMatch) string {
-	var b strings.Builder
-	for i, seg := range fm.path {
-		if i > 0 {
-			b.WriteString(dimStyle.Render(" › "))
-		}
-		if i == len(fm.path)-1 {
-			b.WriteString(folderStyle.Render("📁 " + seg))
-		} else {
-			b.WriteString(pathStyle.Render(seg))
-		}
-	}
+	b := pathStyle.Render(strings.Join(fm.path, " / "))
 	if n := fm.f.CountBookmarks(); n > 0 {
-		b.WriteString(" " + countStyle.Render("· "+plural(n, "link")))
+		b += " " + countStyle.Render("· "+plural(n, "link"))
 	} else {
-		b.WriteString(" " + dimStyle.Render("(empty)"))
+		b += " " + dimStyle.Render("(empty)")
 	}
-	return b.String()
+	return b
 }
 
 // pluralWord returns the singular or plural form of a word for n.
@@ -179,10 +169,12 @@ func pluralWord(n int, singular, plural string) string {
 	return plural
 }
 
+// matchLine renders a bookmark match: the slash-separated folder path,
+// in the same format ls accepts, then the title and URL.
 func matchLine(m match) string {
 	var b strings.Builder
-	for _, seg := range m.path {
-		b.WriteString(pathStyle.Render(seg))
+	if len(m.path) > 0 {
+		b.WriteString(pathStyle.Render(strings.Join(m.path, " / ")))
 		b.WriteString(dimStyle.Render(" › "))
 	}
 	b.WriteString(linkStyle.Render(bookmarkLabel(m.bm)))
