@@ -49,9 +49,14 @@ of a folder on its path (the default searches all of them).
     xbel search charm
     xbel search --title charm
     xbel search --url charm
+    xbel search --folder charm
 
 Results show the folder path leading to each match, then the title
-and URL.
+and URL. The flags select the fields to search: `--title` and `--url`
+restrict bookmarks to those fields; `--folder` searches folder names
+and lists the matching folders instead (with their bookmark count).
+Combining flags searches the union of the selected fields; with no
+flag all fields are searched.
 
 ## Exit status
 

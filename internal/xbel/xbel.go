@@ -169,3 +169,17 @@ func (d *Document) Walk(fn func(path []string, bm Bookmark)) {
 		fn(nil, d.Bookmarks[i])
 	}
 }
+
+// WalkFolders calls fn for every folder in the document, with the path
+// leading to it, its own title included.
+func (d *Document) WalkFolders(fn func(path []string, f *Folder)) {
+	var walk func(folders []Folder, prefix []string)
+	walk = func(folders []Folder, prefix []string) {
+		for i := range folders {
+			path := append(append([]string{}, prefix...), strings.TrimSpace(folders[i].Title))
+			fn(path, &folders[i])
+			walk(folders[i].Folders, path)
+		}
+	}
+	walk(d.Folders, nil)
+}

@@ -27,7 +27,7 @@ func searchDoc(t *testing.T) *xbel.Document {
 }
 
 func TestSearchBothFields(t *testing.T) {
-	matches := searchBookmarks(searchDoc(t), "go", false, false)
+	matches := searchBookmarks(searchDoc(t), "go", searchFields{})
 	if len(matches) != 2 {
 		t.Fatalf("got %d matches, want 2: %+v", len(matches), matches)
 	}
@@ -40,7 +40,7 @@ func TestSearchBothFields(t *testing.T) {
 }
 
 func TestSearchTitleOnly(t *testing.T) {
-	matches := searchBookmarks(searchDoc(t), "go", true, false)
+	matches := searchBookmarks(searchDoc(t), "go", searchFields{title: true})
 	if len(matches) != 2 {
 		t.Fatalf("got %d matches, want 2 (Go, Go Blog): %+v", len(matches), matches)
 	}
@@ -52,7 +52,7 @@ func TestSearchTitleOnly(t *testing.T) {
 }
 
 func TestSearchURLOnly(t *testing.T) {
-	matches := searchBookmarks(searchDoc(t), "go", false, true)
+	matches := searchBookmarks(searchDoc(t), "go", searchFields{url: true})
 	if len(matches) != 2 {
 		t.Fatalf("got %d matches, want 2 (go.dev, blog.golang.org): %+v", len(matches), matches)
 	}
@@ -64,27 +64,79 @@ func TestSearchURLOnly(t *testing.T) {
 }
 
 func TestSearchCaseInsensitive(t *testing.T) {
-	matches := searchBookmarks(searchDoc(t), "LWN", false, false)
+	matches := searchBookmarks(searchDoc(t), "LWN", searchFields{})
 	if len(matches) != 1 || matches[0].bm.Title != "LWN Kernel News" {
 		t.Fatalf("query LWN should match exactly one bookmark: %+v", matches)
 	}
 }
 
-func TestSearchBothFlagsSearchBothFields(t *testing.T) {
-	if got := len(searchBookmarks(searchDoc(t), "go", true, true)); got != 2 {
-		t.Errorf("--title --url should behave like the default, got %d matches", got)
+func TestSearchFlagsSelectFields(t *testing.T) {
+	// "toolbar" only appears in the Toolbar folder name: it matches the
+	// default bookmark search but not --title or --url.
+	if got := searchBookmarks(searchDoc(t), "toolbar", searchFields{}); len(got) != 2 {
+		t.Errorf("default search should match folder names, got %d matches", len(got))
+	}
+	if got := searchBookmarks(searchDoc(t), "toolbar", searchFields{title: true}); len(got) != 0 {
+		t.Errorf("--title should not match folder names, got %d matches", len(got))
+	}
+	if got := searchBookmarks(searchDoc(t), "toolbar", searchFields{url: true}); len(got) != 0 {
+		t.Errorf("--url should not match folder names, got %d matches", len(got))
+	}
+}
+
+func TestSearchFolderFlag(t *testing.T) {
+	matches, folders := searchAll(searchDoc(t), "news", searchFields{folder: true})
+	if len(matches) != 0 {
+		t.Errorf("--folder should not list bookmarks, got %d", len(matches))
+	}
+	if len(folders) != 1 {
+		t.Fatalf("--folder news should match the News folder, got %+v", folders)
+	}
+	if got := strings.Join(folders[0].path, "/"); got != "Toolbar/News" {
+		t.Errorf("folder path = %q, want Toolbar/News", got)
+	}
+	if got := folders[0].f.CountBookmarks(); got != 1 {
+		t.Errorf("News folder should hold 1 link, got %d", got)
+	}
+}
+
+func TestSearchFolderFlagCaseInsensitive(t *testing.T) {
+	if _, folders := searchAll(searchDoc(t), "TOOLBAR", searchFields{folder: true}); len(folders) != 1 {
+		t.Errorf("--folder TOOLBAR should match the Toolbar folder, got %+v", folders)
+	}
+}
+
+func TestSearchFolderFlagWithBookmarkFields(t *testing.T) {
+	matches, folders := searchAll(searchDoc(t), "go", searchFields{folder: true, title: true})
+	if len(folders) != 0 {
+		t.Errorf("no folder named go, got %+v", folders)
+	}
+	if len(matches) != 2 {
+		t.Errorf("--folder --title should still search titles, got %d matches", len(matches))
+	}
+}
+
+func TestSearchFlagUnion(t *testing.T) {
+	// --title --url selects those two fields; folder names are left
+	// out, so a query that only appears in a folder name finds nothing.
+	fields := searchFields{title: true, url: true}
+	if got := len(searchBookmarks(searchDoc(t), "go", fields)); got != 2 {
+		t.Errorf("--title --url should search titles and URLs, got %d matches", got)
+	}
+	if got := len(searchBookmarks(searchDoc(t), "toolbar", fields)); got != 0 {
+		t.Errorf("--title --url should not match folder names, got %d matches", got)
 	}
 }
 
 func TestSearchFolderPath(t *testing.T) {
-	matches := searchBookmarks(searchDoc(t), "news", false, false)
+	matches := searchBookmarks(searchDoc(t), "news", searchFields{})
 	if len(matches) != 1 || matches[0].bm.Title != "LWN Kernel News" {
 		t.Fatalf("query news should match via the News folder name: %+v", matches)
 	}
 }
 
 func TestSearchFolderPathCoversWholeFolder(t *testing.T) {
-	matches := searchBookmarks(searchDoc(t), "toolbar", false, false)
+	matches := searchBookmarks(searchDoc(t), "toolbar", searchFields{})
 	if len(matches) != 2 {
 		t.Fatalf("query toolbar should match both bookmarks under Toolbar: %+v", matches)
 	}
@@ -96,14 +148,14 @@ func TestSearchFolderPathCoversWholeFolder(t *testing.T) {
 }
 
 func TestSearchTitleOnlyIgnoresPath(t *testing.T) {
-	if got := searchBookmarks(searchDoc(t), "toolbar", true, false); len(got) != 0 {
+	if got := searchBookmarks(searchDoc(t), "toolbar", searchFields{title: true}); len(got) != 0 {
 		t.Errorf("--title should not match folder names, got %d matches", len(got))
 	}
 }
 
 func TestRenderSearch(t *testing.T) {
-	matches := searchBookmarks(searchDoc(t), "lwn", false, false)
-	out := plain(renderSearch("bookmarks.xbel", matches))
+	matches := searchBookmarks(searchDoc(t), "lwn", searchFields{})
+	out := plain(renderSearch("bookmarks.xbel", matches, nil))
 	for _, want := range []string{
 		"📑 bookmarks.xbel",
 		"1 match for query",
@@ -116,8 +168,22 @@ func TestRenderSearch(t *testing.T) {
 	}
 }
 
+func TestRenderSearchFolder(t *testing.T) {
+	_, folders := searchAll(searchDoc(t), "news", searchFields{folder: true})
+	out := plain(renderSearch("bookmarks.xbel", nil, folders))
+	for _, want := range []string{
+		"1 match for query",
+		"Toolbar › 📁 News",
+		"1 link",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("folder search output missing %q:\n%s", want, out)
+		}
+	}
+}
+
 func TestRenderSearchEmpty(t *testing.T) {
-	if out := plain(renderSearch("bookmarks.xbel", nil)); !strings.Contains(out, "0 matches for query") || !strings.Contains(out, "no match") {
+	if out := plain(renderSearch("bookmarks.xbel", nil, nil)); !strings.Contains(out, "0 matches for query") || !strings.Contains(out, "no match") {
 		t.Errorf("empty search should report zero matches:\n%s", out)
 	}
 }

@@ -96,6 +96,22 @@ func TestFindFolderAmbiguous(t *testing.T) {
 	}
 }
 
+func TestWalkFolders(t *testing.T) {
+	var got [][]string
+	testDoc(t).WalkFolders(func(path []string, f *Folder) {
+		got = append(got, append([]string{}, path...))
+	})
+	want := [][]string{{"Toolbar"}, {"Toolbar", "Go"}, {"Bookmarks Menu"}}
+	if len(got) != len(want) {
+		t.Fatalf("WalkFolders visited %d folders, want %d: %v", len(got), len(want), got)
+	}
+	for i := range want {
+		if !slices.Equal(got[i], want[i]) {
+			t.Errorf("WalkFolders path %d = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
 func TestParse(t *testing.T) {
 	tests := []struct {
 		name    string
