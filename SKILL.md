@@ -73,6 +73,15 @@ xbel search --folder charm
 xbel ls "Bookmarks Toolbar / Charm"
 ```
 
+### Version
+
+```bash
+xbel version      # or: xbel --version
+```
+
+Prints the module version (`go install`) or the VCS tag/revision of
+a local `go build`, plus the Go toolchain version.
+
 ### Exit status
 
 0 on success, 1 on error (no readable file, invalid XML, unknown path).

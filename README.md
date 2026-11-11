@@ -60,6 +60,13 @@ and lists the matching folders instead (with their bookmark count).
 Combining flags searches the union of the selected fields; with no
 flag all fields are searched.
 
+### xbel version
+
+Prints the version and build information embedded in the binary:
+the module version (`go install`) or the VCS tag/revision of a local
+`go build`, then the Go toolchain version. `xbel --version` prints
+the same.
+
 ## Exit status
 
 0 on success, 1 on error (unreadable file, invalid XML, unknown path).
